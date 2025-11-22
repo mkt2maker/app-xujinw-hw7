@@ -101,3 +101,38 @@ class ChatThread(Document):
             'last_activity_time': self.last_activity_time.isoformat() if self.last_activity_time else None
         }
 
+
+class Review(Document):
+    """Review model for transaction feedback"""
+    meta = {'collection': 'reviews'}
+
+    listing_id = ReferenceField(Listing, required=True)
+    reviewer_id = ReferenceField(User, required=True)
+    reviewee_id = ReferenceField(User, required=True)
+    rating = IntField(required=True, min_value=1, max_value=5)
+    comment = StringField(max_length=1000)
+    helpful_count = IntField(default=0)
+    created_at = DateTimeField(default=datetime.utcnow)
+    updated_at = DateTimeField(default=datetime.utcnow)
+    is_flagged = BooleanField(default=False)
+    moderation_status = StringField(
+        required=True,
+        default='Pending',
+        choices=['Pending', 'Approved', 'Rejected']
+    )
+
+    def to_dict(self):
+        return {
+            'id': str(self.id),
+            'listing_id': str(self.listing_id.id),
+            'reviewer_id': str(self.reviewer_id.id),
+            'reviewee_id': str(self.reviewee_id.id),
+            'rating': self.rating,
+            'comment': self.comment,
+            'helpful_count': self.helpful_count,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+            'is_flagged': self.is_flagged,
+            'moderation_status': self.moderation_status
+        }
+

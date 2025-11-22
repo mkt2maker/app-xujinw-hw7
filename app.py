@@ -18,6 +18,12 @@ from resources.thread_resource import (
     StandaloneThreadListResource,
     StandaloneThreadResource
 )
+from resources.review_resource import (
+    ReviewListResource,
+    ReviewResource,
+    ListingReviewListResource,
+    UserReviewListResource
+)
 
 app = Flask(__name__)
 
@@ -53,6 +59,16 @@ api.add_resource(ThreadResource, '/api/listings/<string:listing_id>/threads/<str
 # Standalone Thread Endpoints
 api.add_resource(StandaloneThreadListResource, '/api/threads')
 api.add_resource(StandaloneThreadResource, '/api/threads/<string:thread_id>')
+
+# Review Endpoints
+api.add_resource(ReviewListResource, '/api/reviews')
+api.add_resource(ReviewResource, '/api/reviews/<string:review_id>')
+
+# Listing Review Endpoints
+api.add_resource(ListingReviewListResource, '/api/listings/<string:listing_id>/reviews')
+
+# User Review Endpoints
+api.add_resource(UserReviewListResource, '/api/users/<string:user_id>/reviews')
 
 if __name__ == '__main__':
     app.run(debug=True, port=8080)
