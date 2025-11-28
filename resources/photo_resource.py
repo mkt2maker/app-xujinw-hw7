@@ -2,6 +2,7 @@ from flask import request
 from flask_restful import Resource
 from models import Listing, ListingPhoto
 from bson import ObjectId
+from utils.auth_utils import require_auth, is_owner
 
 
 class PhotoListResource(Resource):
@@ -23,7 +24,8 @@ class PhotoListResource(Resource):
         except Exception as e:
             return {'error': str(e)}, 400
 
-    def post(self, listing_id):
+    @require_auth
+    def post(self, listing_id, current_user=None):
         """Add a photo to a listing (owner only)"""
         try:
             data = request.get_json()
@@ -34,6 +36,10 @@ class PhotoListResource(Resource):
 
             # Verify listing exists
             listing = Listing.objects.get(id=ObjectId(listing_id))
+
+            # Verify the current user is the listing owner
+            if not is_owner(current_user, listing):
+                return {'error': 'Only the listing owner can add photos'}, 403
 
             # Get the next display order
             existing_photos = ListingPhoto.objects(listing_id=listing).count()
@@ -56,10 +62,16 @@ class PhotoListResource(Resource):
 class PhotoResource(Resource):
     """Handle PATCH /listings/:listingId/photos/:photoId and DELETE /listings/:listingId/photos/:photoId"""
 
-    def patch(self, listing_id, photo_id):
+    @require_auth
+    def patch(self, listing_id, photo_id, current_user=None):
         """Update photo order (owner only)"""
         try:
             listing = Listing.objects.get(id=ObjectId(listing_id))
+
+            # Verify the current user is the listing owner
+            if not is_owner(current_user, listing):
+                return {'error': 'Only the listing owner can update photos'}, 403
+
             photo = ListingPhoto.objects.get(id=ObjectId(photo_id), listing_id=listing)
 
             data = request.get_json()
@@ -74,10 +86,16 @@ class PhotoResource(Resource):
         except Exception as e:
             return {'error': str(e)}, 400
 
-    def delete(self, listing_id, photo_id):
+    @require_auth
+    def delete(self, listing_id, photo_id, current_user=None):
         """Remove a photo (owner only)"""
         try:
             listing = Listing.objects.get(id=ObjectId(listing_id))
+
+            # Verify the current user is the listing owner
+            if not is_owner(current_user, listing):
+                return {'error': 'Only the listing owner can delete photos'}, 403
+
             photo = ListingPhoto.objects.get(id=ObjectId(photo_id), listing_id=listing)
             photo.delete()
 

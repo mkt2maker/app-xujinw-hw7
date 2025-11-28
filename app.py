@@ -24,6 +24,8 @@ from resources.review_resource import (
     ListingReviewListResource,
     UserReviewListResource
 )
+from resources.session_resource import SessionResource
+from resources.user_resource import UserListResource, UserResource
 
 app = Flask(__name__)
 
@@ -43,6 +45,13 @@ api = Api(app)
 # ============================================================================
 # API Routes
 # ============================================================================
+
+# Authentication Endpoints
+api.add_resource(SessionResource, '/api/sessions')
+
+# User Endpoints
+api.add_resource(UserListResource, '/api/users')
+api.add_resource(UserResource, '/api/users/<string:user_id>')
 
 # Main Listing Endpoints
 api.add_resource(ListingListResource, '/api/listings')

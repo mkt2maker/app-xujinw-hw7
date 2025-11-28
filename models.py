@@ -8,6 +8,7 @@ class User(Document):
 
     name = StringField(required=True, max_length=100)
     email = StringField(required=True, unique=True)
+    password = StringField(required=True)
     role = StringField(required=True, choices=['Buyer', 'Seller', 'Both'])
     verified = BooleanField(default=False)
     created_at = DateTimeField(default=datetime.utcnow)

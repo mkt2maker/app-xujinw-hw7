@@ -3,6 +3,7 @@ from flask_restful import Resource
 from models import Review, Listing, User
 from bson import ObjectId
 from datetime import datetime
+from utils.auth_utils import require_auth
 
 
 class ReviewListResource(Resource):
@@ -32,13 +33,14 @@ class ReviewListResource(Resource):
         except Exception as e:
             return {'error': str(e)}, 400
 
-    def post(self):
-        """Create a new review"""
+    @require_auth
+    def post(self, current_user=None):
+        """Create a new review (authenticated users only)"""
         try:
             data = request.get_json()
 
             # Validate required fields
-            required_fields = ['listing_id', 'reviewer_id', 'reviewee_id', 'rating']
+            required_fields = ['listing_id', 'reviewee_id', 'rating']
             for field in required_fields:
                 if field not in data:
                     return {'error': f'Missing required field: {field}'}, 400
@@ -46,8 +48,10 @@ class ReviewListResource(Resource):
             # Verify listing exists
             listing = Listing.objects.get(id=ObjectId(data['listing_id']))
 
-            # Verify reviewer and reviewee exist
-            reviewer = User.objects.get(id=ObjectId(data['reviewer_id']))
+            # Use current authenticated user as reviewer
+            reviewer = current_user
+
+            # Verify reviewee exists
             reviewee = User.objects.get(id=ObjectId(data['reviewee_id']))
 
             # Validate rating is between 1-5
@@ -95,8 +99,9 @@ class ReviewResource(Resource):
         except Exception as e:
             return {'error': str(e)}, 400
 
-    def patch(self, review_id):
-        """Update review (helpful count or moderation status)"""
+    @require_auth
+    def patch(self, review_id, current_user=None):
+        """Update review (helpful count or moderation status) - authenticated users"""
         try:
             review = Review.objects.get(id=ObjectId(review_id))
             data = request.get_json()
@@ -122,8 +127,9 @@ class ReviewResource(Resource):
         except Exception as e:
             return {'error': str(e)}, 400
 
-    def delete(self, review_id):
-        """Delete a review (soft delete by marking as rejected)"""
+    @require_auth
+    def delete(self, review_id, current_user=None):
+        """Delete a review (soft delete by marking as rejected) - admin/authenticated users"""
         try:
             review = Review.objects.get(id=ObjectId(review_id))
 

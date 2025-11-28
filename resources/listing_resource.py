@@ -3,6 +3,7 @@ from flask_restful import Resource
 from models import Listing, User
 from bson import ObjectId
 from datetime import datetime
+from utils.auth_utils import require_auth, require_role, is_owner
 
 
 class ListingListResource(Resource):
@@ -42,24 +43,24 @@ class ListingListResource(Resource):
         except Exception as e:
             return {'error': str(e)}, 400
 
-    def post(self):
+    @require_role(['Seller', 'Both'])
+    def post(self, current_user=None):
         """Create a new listing (sellers only)"""
         try:
             data = request.get_json()
 
             # Validate required fields
-            required_fields = ['seller_id', 'title', 'price', 'category', 'condition']
+            required_fields = ['title', 'price', 'category', 'condition']
             for field in required_fields:
                 if field not in data:
                     return {'error': f'Missing required field: {field}'}, 400
 
-            # Verify seller exists
-            try:
-                seller = User.objects.get(id=ObjectId(data['seller_id']))
-                if seller.role not in ['Seller', 'Both']:
-                    return {'error': 'User is not authorized to sell'}, 403
-            except:
-                return {'error': 'Invalid seller_id'}, 400
+            # Use current authenticated user as seller
+            seller = current_user
+
+            # Verify user has seller privileges
+            if seller.role not in ['Seller', 'Both']:
+                return {'error': 'User is not authorized to sell'}, 403
 
             # Create listing
             listing = Listing(
@@ -92,14 +93,16 @@ class ListingResource(Resource):
         except Exception as e:
             return {'error': str(e)}, 400
 
-    def patch(self, listing_id):
+    @require_auth
+    def patch(self, listing_id, current_user=None):
         """Update a listing (owner only)"""
         try:
             data = request.get_json()
             listing = Listing.objects.get(id=ObjectId(listing_id))
 
-            # In production, verify the current user is the seller
-            # For now, we'll allow any update
+            # Verify the current user is the seller/owner
+            if not is_owner(current_user, listing):
+                return {'error': 'Only the listing owner can update this listing'}, 403
 
             # Update allowed fields
             if 'title' in data:
@@ -125,10 +128,16 @@ class ListingResource(Resource):
         except Exception as e:
             return {'error': str(e)}, 400
 
-    def delete(self, listing_id):
+    @require_auth
+    def delete(self, listing_id, current_user=None):
         """Delete a listing (owner only)"""
         try:
             listing = Listing.objects.get(id=ObjectId(listing_id))
+
+            # Verify the current user is the seller/owner
+            if not is_owner(current_user, listing):
+                return {'error': 'Only the listing owner can delete this listing'}, 403
+
             listing.delete()
             return {'message': 'Listing deleted successfully'}, 200
         except Listing.DoesNotExist:
